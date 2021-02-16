@@ -14,7 +14,7 @@ ack (S m) (S n) = ack m (ack (S m) n)
 -- Problem 2
 -- TODO: What should these functions actually do???
 diag : a -> Pair a a
-diag a = (a, a)
+diag a = (a, ?ga)
 
 anyway : Either a a -> a
 anyway (Left a)  = a
