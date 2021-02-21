@@ -34,9 +34,9 @@ consolidate : List (Maybe a) -> Maybe (List a)
 consolidate []               = Just []
 consolidate (x :: xs) = consAdd x (consolidate xs) where
   consAdd : Maybe a -> Maybe (List a) -> Maybe (List a)
-  consAdd Nothing  x         = Nothing
-  consAdd x        Nothing   = Nothing
-  consAdd (Just x) (Just xs) = Just (x :: xs)
+  consAdd Nothing  _         = Nothing
+  consAdd _        Nothing   = Nothing
+  consAdd (Just y) (Just ys) = Just (y :: ys)
 
 
 -- Problem 4
