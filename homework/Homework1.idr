@@ -3,6 +3,8 @@
   186060IAIB
   Idris 2, version 0.3.0-3bbf52025
 -}
+module Homework1
+
 import Data.Strings
 import Data.Vect
 
