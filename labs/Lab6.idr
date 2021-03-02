@@ -1,4 +1,4 @@
--- module Lab6
+module Lab6
 
 import Data.Fin
 import Data.Vect
