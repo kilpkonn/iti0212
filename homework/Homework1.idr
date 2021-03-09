@@ -34,11 +34,10 @@ distl (x, (Right z)) = Right (x, z)
 -- Problem 3
 consolidate : List (Maybe a) -> Maybe (List a)
 consolidate []               = Just []
-consolidate (x :: xs) = consAdd x (consolidate xs) where
-  consAdd : Maybe a -> Maybe (List a) -> Maybe (List a)
-  consAdd Nothing  _         = Nothing
-  consAdd _        Nothing   = Nothing
-  consAdd (Just y) (Just ys) = Just (y :: ys)
+consolidate (Nothing :: xs)  = Nothing
+consolidate ((Just x) :: xs) = case consolidate xs of
+                                    Nothing => Nothing
+                                    Just xs => Just (x :: xs)
 
 
 -- Problem 4
@@ -50,7 +49,7 @@ transform f (S k) (x :: xs) = x :: (transform f k xs)
 
 -- Problem 5
 titlecase : String -> String
-titlecase str = unwords (map (\word => pack (transform (\c => toUpper c) 0 (unpack word))) (words str))
+titlecase str = unwords (map (\word => pack (transform toUpper 0 (unpack word))) (words str))
 -- This is VERY slow
 
 
@@ -62,7 +61,7 @@ add : Matrix m n Integer -> Matrix m n Integer -> Matrix m n Integer
 add [] [] = []
 add (x :: xs) (y :: ys) = (addRow x y) :: (add xs ys) where
   addRow : (as : Vect n Integer) -> (bs : Vect n Integer) -> Vect n Integer
-  addRow as bs = zipWith (\a, b => a + b) as bs                              -- This can be written inline in add, but keeping for readability
+  addRow as bs = zipWith (+) as bs                              -- This can be written inline in add, but keeping for readability
 
 -- add (the (Matrix 3 2 Integer)[[1, 2], [2, 3], [4, 5]]) (the (Matrix 3 2 Integer) [[1, 1], [1, 2], [1, 3]])
  
