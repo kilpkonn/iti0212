@@ -2,6 +2,8 @@ module RPNCalculator
 
 import Data.Strings
 import Data.List
+import System
+import System.File
 
 import StackLang
 
@@ -26,6 +28,7 @@ parseInput input = stackFromList $
                    filterNothing $ 
                    map mapToMaybeNat (words input)
 
+
 public export
 eval : (input : String) -> Maybe Nat 
 eval input = case run (parseInput input) of
@@ -33,5 +36,16 @@ eval input = case run (parseInput input) of
                   Just (Elem n :: Empty) => Just n
                   Just _ => Nothing
 
+
+main :  IO ()
+main = case !getArgs of
+       _ :: x :: xs => do
+            file <- readFile x
+            case file of
+                Left err  => putStr "Error reading file!"
+                Right content  => case eval content of
+                       Nothing => putStr content
+                       Just n  => putStr (show n) >>= (\_ => pure())
+       _ => putStr "Please specify file name!"
 
 
