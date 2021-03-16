@@ -8,9 +8,11 @@ import System.File
 import StackLang
 
 
-mapToMaybeNat : String -> Maybe (Entry Nat)
-mapToMaybeNat x = if x == "+" then Just $ Func (+)
+mapToMaybeEntry : String -> Maybe (Entry Nat)
+mapToMaybeEntry x = if x == "+" then Just $ Func (+)
               else if x == "*" then Just $ Func (*)
+              else if x == "r" then Just $ Op ?rhs_r
+              else if x == "p" then Just $ Op ?rhs_p
               else case parsePositive x of
                         Nothing => Nothing -- TODO: This should throw
                         Just n  => Just $ Elem n
@@ -26,7 +28,7 @@ parseInput : (input : String) -> Stack (Entry Nat)
 parseInput input = stackFromList $
                    reverse $
                    filterNothing $ 
-                   map mapToMaybeNat (words input)
+                   map mapToMaybeEntry (words input)
 
 
 public export

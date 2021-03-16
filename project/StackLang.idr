@@ -20,6 +20,7 @@ public export
 data Entry : Type -> Type where
   Elem : a -> Entry a
   Func : (a -> a -> a) -> Entry a
+  Op   : (Stack (Entry a) -> Stack (Entry a)) -> Entry a
 
 
 public export
@@ -32,8 +33,7 @@ public export
 run : Stack (Entry a) -> Maybe (Stack (Entry a))
 run Empty = Just Empty
 run ((Elem x) :: stack) = Just $ (Elem x) :: stack
-run ((Func f) :: Empty) = Nothing 
-run ((Func f) :: (top :: Empty)) = Nothing
+run ((Op   o) :: stack) = run $ o stack
 run ((Func f) :: ((Func g) :: (next :: stack))) = 
     case run ((Func g) :: next :: stack) of
          Nothing => Nothing
@@ -46,4 +46,4 @@ run ((Func f) :: ((Elem x) :: ((Func g) :: stack))) =
 
 run ((Func f) :: ((Elem x) :: ((Elem y) :: stack))) = 
     run $ (Elem (f x y)) :: stack
-
+run _ = Nothing
