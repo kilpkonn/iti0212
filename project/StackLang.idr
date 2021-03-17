@@ -24,6 +24,18 @@ data Entry : Type -> Type where
   Err  : Entry a
 
 
+implementation Show (Entry a) where
+  show (Elem x) = "el"
+  show (Func f) = "fn"
+  show (Op o)   = "op"
+  show Err      = "err"
+
+
+implementation Show a => Show (Stack a) where
+  show Empty        = "end"
+  show (top :: stack) = (show top) ++ " :: " ++ (show stack)
+
+
 public export
 stackFromList : List a -> Stack a
 stackFromList []        = Empty
@@ -61,30 +73,32 @@ merge Empty     ys = ys
 merge (x :: xs) ys = merge xs (x :: ys)
 
 
+run : Stack (Entry a) -> IO (Stack (Entry a)) -> IO (Maybe (Stack (Entry a)))
+run x y = ?run_rhs
+
+
 public export
 runIO : IO (Stack (Entry a)) -> IO (Maybe (Stack (Entry a)))
 runIO x = do
   stack <- x
+  putStrLn $ show stack
   case stack of
        ((Op o) :: rest)    => do
             newFront <- o (pure Empty)
             runIO $ pure $ merge (reverse newFront) rest
        ((Elem x) :: (Op o) :: rest) => do
-            putStr "a"
             newFront <- o (pure ((Elem x) :: Empty))
             runIO $ pure $ merge (reverse newFront) rest
        ((Elem x) :: (Elem y) :: (Op o) :: rest) => do
-            putStr "b"
             newFront <- o (pure ((Elem y) :: ((Elem x) :: Empty)))
             runIO $ pure $ merge (reverse newFront) rest
        ((Elem x) :: (Elem y) :: (Func f) :: rest) => do
-            putStr "c"
             runIO $ pure $ (Elem (f x y)) :: rest
        (x :: y :: z :: rest) => do
-            putStr "d"
             newRestMaybe <- runIO $ pure $ (y :: (z :: rest))
             case newRestMaybe of
                  Nothing      => pure Nothing
                  Just newRest => runIO $ pure $ x :: newRest
        (Elem x) :: Empty => pure $ Just ((Elem x) :: Empty)
        _ => pure Nothing
+

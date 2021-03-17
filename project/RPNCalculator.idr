@@ -27,10 +27,7 @@ runReadInput ioStack = do
        Nothing => pure $ Err :: Empty
        Just c  => do
          stack <- ioStack
-         runResult <- runIO $ pure (c :: stack)
-         case runResult of
-                    Just xs => pure xs
-                    Nothing => pure $ Err :: Empty
+         pure (c :: stack)
 
 
 runPop : IO (Stack (Entry Nat)) -> IO (Stack (Entry Nat))
