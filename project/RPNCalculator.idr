@@ -13,31 +13,26 @@ implementation Show (Entry Nat) where
   show (Func f) = "fn"
   show (Op f)   = "operation"
   show Err      = "err"
+  show Nil      = "nil"
 
 interface EntryMappable a where
 mapToMaybeEntry : String -> IO (Maybe (Entry Nat))
 
 
-runReadInput : IO (Stack (Entry Nat)) ->  IO (Stack (Entry Nat))
+runReadInput : (Entry Nat) ->  IO (Entry Nat)
 runReadInput ioStack = do
   putStr "Please Enter a Symbol: "
   input <- getLine
   maybeEntry <- mapToMaybeEntry input
   case maybeEntry of
-       Nothing => pure $ Err :: Empty
-       Just c  => do
-         stack <- ioStack
-         pure (c :: stack)
+       Nothing => pure Err
+       Just c  => pure c
 
 
-runPop : IO (Stack (Entry Nat)) -> IO (Stack (Entry Nat))
-runPop ioStack = do
-  stack <- ioStack
-  case stack of
-       Empty   => putStrLn "Unable to print: Stack is empty" >>= (\_ => pure Empty)
-       x :: xs => do
-            putStrLn $ "Evaluation prints: " ++ (show x)
-            pure xs
+runPop : (Entry Nat) -> IO (Entry Nat)
+runPop Elem e = putStrLn $ "Evaluation prints: " ++ (show x) >>= (\_ => pure Nil)
+runPop Empty  = putStrLn "Unable to print: Stack is empty" >>= (\_ => pure Empty)
+runPop _      = putStrLn "No Result!" >>= (\_ => pure Err)  -- Or should I print?
 
 
 implementation EntryMappable String where

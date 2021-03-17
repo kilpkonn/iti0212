@@ -20,8 +20,9 @@ public export
 data Entry : Type -> Type where
   Elem : a -> Entry a
   Func : (a -> a -> a) -> Entry a
-  Op   : (IO (Stack (Entry a)) -> IO (Stack (Entry a))) -> Entry a
+  Op   : ((Entry a) -> IO (Entry a)) -> Entry a
   Err  : Entry a
+  Nil  : Entry a
 
 
 implementation Show (Entry a) where
@@ -29,6 +30,7 @@ implementation Show (Entry a) where
   show (Func f) = "fn"
   show (Op o)   = "op"
   show Err      = "err"
+  show Nil      = "nil"
 
 
 implementation Show a => Show (Stack a) where
@@ -73,9 +75,33 @@ merge Empty     ys = ys
 merge (x :: xs) ys = merge xs (x :: ys)
 
 
-run : Stack (Entry a) -> IO (Stack (Entry a)) -> IO (Maybe (Stack (Entry a)))
-run x y = ?run_rhs
+runFunc : (a -> a -> a) -> Stack (Entry a) -> Stack (Entry a)
+runFunc f (Elem x) :: (Elem y) :: rest = (Elem (f x y)) :: rest
+runFunc f _ = Err :: Empty
 
+
+runOp : ((Entry a) -> IO (Entry a)) -> Stack (Entry a) -> IO (Entry a)
+runOp f (top :: rest) = f top
+runOp f Empty         = f Empty
+
+
+runLeft : IO (Stack (Entry a)) -> IO (Stack (Entry a)) -> IO (Maybe (Stack (Entry a)))
+
+runRight : IO (Stack (Entry a)) -> IO (Stack (Entry a)) -> IO (Maybe (Stack (Entry a)))
+runRight ioStackLeft ioStackRight = do
+  stackLeft <- ioStackLeft
+  stackRight <- ioStackRight
+  putStrLn $ "left: " ++ (show stackLeft)
+  putStrLn $ "right: " ++ (show stackRight)
+  case ioStackRight of
+       Empty => runLeft ioStackLeft (pure Empty)
+       (Elem e) :: rest => runRight (pure ((Elem e) :: stackLeft) (pure rest)
+       (Func f) :: rest => runLeft (pure (runFunc f stackLeft)) (pure rest)
+       (Op   o) :: rest => runOp >>= (\el => runRight ioStackLeft (pure (el :: rest)))
+       Nil      :: rest => runRight (pure rest)
+       Err      :: rest => pure Nothing
+
+runLeft ioStackLeft ioStackRight = ?rhsfdsfds
 
 public export
 runIO : IO (Stack (Entry a)) -> IO (Maybe (Stack (Entry a)))
