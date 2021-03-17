@@ -30,20 +30,6 @@ stackFromList []        = Empty
 stackFromList (x :: xs) = x :: stackFromList xs
 
 
-{-
-public export
-createSimpleFn : (a -> a -> a) -> Stack (IO (Entry a)) -> Stack (IO (Entry a))
-createSimpleFn f Empty = Empty
-createSimpleFn f (top :: next :: stack) = do 
-  topElem <- top
-  nextElem <- next
-  case (topElem, nextElem) of
-       (Elem x, Elem y) => ?rhs
-       (Func f1, _) => f1 (next :: stack)
-       (_, _) => ?rhs2
-       -}
-
-
 public export
 run : Stack (Entry a) -> Maybe (Stack (Entry a))
 run Empty = Just Empty
@@ -68,6 +54,12 @@ runIO : IO (Stack (Entry a)) -> IO (Maybe (Stack (Entry a)))
 runIO x = do
   stack <- x
   case stack of
+       (top :: next :: (Op o) :: rest) => do
+            newStack <- o (pure rest)
+            runIO $ pure (top :: (next :: newStack))
+       (top :: (Op o) :: rest) => do
+            newStack <- o (pure rest)
+            runIO $ pure (top :: newStack)
        ((Op o) :: rest) => runIO $ o (pure rest)
        _ => pure $ run stack
 

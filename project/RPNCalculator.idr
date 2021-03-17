@@ -8,30 +8,46 @@ import System.File
 import StackLang
 
 
+implementation Show (Entry Nat) where
+  show (Elem x) = show x
+  show (Func f) = "fn"
+  show (Op f)   = "operation"
+  show Err      = "err"
+
 interface EntryMappable a where
 mapToMaybeEntry : String -> IO (Maybe (Entry Nat))
 
 
 runReadInput : IO (Stack (Entry Nat)) ->  IO (Stack (Entry Nat))
-runReadInput stack = do
-  putStr "Please enter a command: "
+runReadInput ioStack = do
+  putStr "Please Enter a Symbol: "
   input <- getLine
   maybeEntry <- mapToMaybeEntry input
   case maybeEntry of
        Nothing => pure $ Err :: Empty
        Just c  => do
-         stack <- stack
+         stack <- ioStack
          runResult <- runIO $ pure (c :: stack)
          case runResult of
                     Just xs => pure xs
                     Nothing => pure $ Err :: Empty
 
 
+runPop : IO (Stack (Entry Nat)) -> IO (Stack (Entry Nat))
+runPop ioStack = do
+  stack <- ioStack
+  case stack of
+       Empty   => putStrLn "Unable to print: Stack is empty" >>= (\_ => pure Empty)
+       x :: xs => do
+            putStrLn $ "Evaluation prints: " ++ (show x)
+            pure xs
+
+
 implementation EntryMappable String where
 mapToMaybeEntry x = if x == "+" then pure $ Just $ Func (+)
               else if x == "*" then pure $ Just $ Func (*)
               else if x == "r" then pure $ Just $ Op runReadInput
-              else if x == "p" then pure $ Just $ Op ?rhs_p
+              else if x == "p" then pure $ Just $ Op runPop
               else case parsePositive x of
                         Nothing => pure Nothing -- TODO: This should throw
                         Just n  => pure $ Just $ Elem n
@@ -50,6 +66,8 @@ filterNothing (ioX :: ioXs) = do
 parseInput : (input : String) -> IO (Stack (Entry Nat))
 parseInput input = do
     cmds <- filterNothing $ map mapToMaybeEntry (words input)
+    putStrLn $ show $ words input
+    putStrLn $ show $ reverse cmds
     pure $ stackFromList $ reverse cmds
 
 
@@ -72,7 +90,7 @@ main = case !getArgs of
                 Right content  => do
                   res <- eval content 
                   case res of
-                       Nothing => putStr $ "Error parsing file:" ++ content 
+                       Nothing => putStr $ "No Result!"
                        Just n  => putStr (show n) >>= (\_ => pure())
        _ => putStr "Please specify file name!"
 
