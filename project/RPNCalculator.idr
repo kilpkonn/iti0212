@@ -9,7 +9,7 @@ import StackLang
 
 
 interface EntryMappable a where
-mapToMaybeEntry : String -> Maybe (Entry Nat)
+mapToMaybeEntry : String -> IO (Maybe (Entry Nat))
 
 
 runReadInput : IO (Stack (Entry Nat)) ->  IO (Stack (Entry Nat))
@@ -28,34 +28,39 @@ runReadInput stack = do
 
 
 implementation EntryMappable String where
-mapToMaybeEntry x = if x == "+" then Just $ Func (+)
-              else if x == "*" then Just $ Func (*)
-              else if x == "r" then Just $ Op runReadInput
-              else if x == "p" then Just $ Op ?rhs_p
+mapToMaybeEntry x = if x == "+" then pure $ Just $ Func (+)
+              else if x == "*" then pure $ Just $ Func (*)
+              else if x == "r" then pure $ Just $ Op runReadInput
+              else if x == "p" then pure $ Just $ Op ?rhs_p
               else case parsePositive x of
-                        Nothing => Nothing -- TODO: This should throw
-                        Just n  => Just $ Elem n
+                        Nothing => pure Nothing -- TODO: This should throw
+                        Just n  => pure $ Just $ Elem n
 
 
-filterNothing : List (Maybe a) -> List a
-filterNothing []               = []
-filterNothing (Nothing :: xs)  = filterNothing xs
-filterNothing ((Just x) :: xs) = x :: (filterNothing xs)
+filterNothing : List (IO (Maybe a)) -> IO (List a)
+filterNothing []            = pure []
+filterNothing (ioX :: ioXs) = do
+    x <- ioX  
+    case x of
+        Nothing    => filterNothing ioXs
+        Just entry => filterNothing ioXs >>= (\xs => pure $ entry :: xs)
+                    
 
 
-parseInput : (input : String) -> Stack (Entry Nat)
-parseInput input = stackFromList $
-                   reverse $
-                   filterNothing $ 
-                   map mapToMaybeEntry (words input)
+parseInput : (input : String) -> IO (Stack (Entry Nat))
+parseInput input = do
+    cmds <- filterNothing $ map mapToMaybeEntry (words input)
+    pure $ stackFromList $ reverse cmds
 
 
 public export
 eval : (input : String) -> IO (Maybe Nat) 
-eval input = case run (parseInput input) of
-                  Nothing => pure Nothing
-                  Just (Elem n :: Empty) => pure $ Just n
-                  Just _ => pure Nothing
+eval input = do
+    res <- runIO (parseInput input) 
+    case res of
+        Nothing => pure Nothing
+        Just (Elem n :: Empty) => pure $ Just n
+        Just _ => pure Nothing
 
 
 main :  IO ()
