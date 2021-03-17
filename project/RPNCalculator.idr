@@ -19,20 +19,20 @@ interface EntryMappable a where
 mapToMaybeEntry : String -> IO (Maybe (Entry Nat))
 
 
-runReadInput : (Entry Nat) ->  IO (Entry Nat)
-runReadInput ioStack = do
+runReadInput : (Entry Nat) ->  IO (Stack (Entry Nat))
+runReadInput top = do
   putStr "Please Enter a Symbol: "
   input <- getLine
   maybeEntry <- mapToMaybeEntry input
   case maybeEntry of
-       Nothing => pure Err
-       Just c  => pure c
+       Nothing => pure $ Err :: Empty
+       Just c  => pure $ c :: (top :: Empty)
 
 
-runPop : (Entry Nat) -> IO (Entry Nat)
-runPop Elem e = putStrLn $ "Evaluation prints: " ++ (show x) >>= (\_ => pure Nil)
-runPop Empty  = putStrLn "Unable to print: Stack is empty" >>= (\_ => pure Empty)
-runPop _      = putStrLn "No Result!" >>= (\_ => pure Err)  -- Or should I print?
+runPop : (Entry Nat) -> IO (Stack (Entry Nat))
+runPop (Elem e) = putStrLn ("Evaluation prints: " ++ (show e)) >>= (\_ => pure Empty)
+runPop Nil      = putStrLn "Unable to print: Stack is empty" >>= (\_ => pure Empty)
+runPop _        = putStrLn "No Result!" >>= (\_ => pure Empty)  -- Or should I print?
 
 
 implementation EntryMappable String where
@@ -66,7 +66,7 @@ parseInput input = do
 public export
 eval : (input : String) -> IO (Maybe Nat) 
 eval input = do
-    res <- runIO (parseInput input) 
+    res <- run (parseInput input) 
     case res of
         Nothing => pure Nothing
         Just (Elem n :: Empty) => pure $ Just n
