@@ -67,8 +67,8 @@ parseInput : (input : String) -> IO (Stack (Entry Nat))
 parseInput input = do
     cmds <- filterNothing $ map mapToMaybeEntry (words input)
     putStrLn $ show $ words input
-    putStrLn $ show $ reverse cmds
-    pure $ stackFromList $ reverse cmds
+    putStrLn $ show cmds
+    pure $ stackFromList cmds
 
 
 public export
