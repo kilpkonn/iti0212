@@ -20,7 +20,8 @@ public export
 data Entry : Type -> Type where
   Elem : a -> Entry a
   Func : (a -> a -> a) -> Entry a
-  Op   : (Stack (Entry a) -> Stack (Entry a)) -> Entry a
+  Op   : (IO (Stack (Entry a)) -> IO (Stack (Entry a))) -> Entry a
+  Err  : Entry a
 
 
 public export
@@ -29,11 +30,24 @@ stackFromList []        = Empty
 stackFromList (x :: xs) = x :: stackFromList xs
 
 
+{-
+public export
+createSimpleFn : (a -> a -> a) -> Stack (IO (Entry a)) -> Stack (IO (Entry a))
+createSimpleFn f Empty = Empty
+createSimpleFn f (top :: next :: stack) = do 
+  topElem <- top
+  nextElem <- next
+  case (topElem, nextElem) of
+       (Elem x, Elem y) => ?rhs
+       (Func f1, _) => f1 (next :: stack)
+       (_, _) => ?rhs2
+       -}
+
+
 public export
 run : Stack (Entry a) -> Maybe (Stack (Entry a))
 run Empty = Just Empty
 run ((Elem x) :: stack) = Just $ (Elem x) :: stack
-run ((Op   o) :: stack) = run $ o stack
 run ((Func f) :: ((Func g) :: (next :: stack))) = 
     case run ((Func g) :: next :: stack) of
          Nothing => Nothing
@@ -47,3 +61,14 @@ run ((Func f) :: ((Elem x) :: ((Func g) :: stack))) =
 run ((Func f) :: ((Elem x) :: ((Elem y) :: stack))) = 
     run $ (Elem (f x y)) :: stack
 run _ = Nothing
+
+
+public export
+runIO : IO (Stack (Entry a)) -> IO (Maybe (Stack (Entry a)))
+runIO x = do
+  stack <- x
+  case stack of
+       ((Op o) :: rest) => runIO $ o (pure rest)
+       _ => pure $ run stack
+
+

@@ -8,10 +8,29 @@ import System.File
 import StackLang
 
 
+interface EntryMappable a where
 mapToMaybeEntry : String -> Maybe (Entry Nat)
+
+
+runReadInput : IO (Stack (Entry Nat)) ->  IO (Stack (Entry Nat))
+runReadInput stack = do
+  putStr "Please enter a command: "
+  input <- getLine
+  maybeEntry <- mapToMaybeEntry input
+  case maybeEntry of
+       Nothing => pure $ Err :: Empty
+       Just c  => do
+         stack <- stack
+         runResult <- runIO $ pure (c :: stack)
+         case runResult of
+                    Just xs => pure xs
+                    Nothing => pure $ Err :: Empty
+
+
+implementation EntryMappable String where
 mapToMaybeEntry x = if x == "+" then Just $ Func (+)
               else if x == "*" then Just $ Func (*)
-              else if x == "r" then Just $ Op ?rhs_r
+              else if x == "r" then Just $ Op runReadInput
               else if x == "p" then Just $ Op ?rhs_p
               else case parsePositive x of
                         Nothing => Nothing -- TODO: This should throw
@@ -32,11 +51,11 @@ parseInput input = stackFromList $
 
 
 public export
-eval : (input : String) -> Maybe Nat 
+eval : (input : String) -> IO (Maybe Nat) 
 eval input = case run (parseInput input) of
-                  Nothing => Nothing
-                  Just (Elem n :: Empty) => Just n
-                  Just _ => Nothing
+                  Nothing => pure Nothing
+                  Just (Elem n :: Empty) => pure $ Just n
+                  Just _ => pure Nothing
 
 
 main :  IO ()
@@ -45,8 +64,10 @@ main = case !getArgs of
             file <- readFile x
             case file of
                 Left err  => putStr "Error reading file!"
-                Right content  => case eval content of
-                       Nothing => putStr content
+                Right content  => do
+                  res <- eval content 
+                  case res of
+                       Nothing => putStr $ "Error parsing file:" ++ content 
                        Just n  => putStr (show n) >>= (\_ => pure())
        _ => putStr "Please specify file name!"
 
