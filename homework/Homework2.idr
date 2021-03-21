@@ -5,6 +5,7 @@
 -}                                                                              
 module Homework2
 
+import Data.List
 import Lecture7
 
 -- Problem 1
@@ -55,5 +56,44 @@ implementation Ord CoNat where
   compare Zero     (Succ n) = LT
   compare (Succ n) Zero     = GT
   compare (Succ n) (Succ m) = compare n m
+
+
+-- Problem 4
+implementation Cast (List a) (CoList a ) where
+  cast []        = Nil
+  cast (x :: xs) = x :: (cast xs)
+
+
+implementation Cast (Stream a) (CoList a) where
+  cast (x :: xs) = x :: (cast xs)
+
+
+-- Problem 5
+interface Queue (queue : Type -> Type) where
+  empty : queue a
+  push  : a -> queue a -> queue a
+  pop   : queue a -> Maybe (Pair a (queue a))
+
+
+implementation Queue List where
+  empty = []
+  push x []        = [x]
+  push x (y :: ys) = y :: (push x ys)
+  pop [] = Nothing
+  pop (x :: xs) = Just (x, xs)
+
+
+-- Problem 6
+data ListPair : Type -> Type where
+  LP : (back : List a) -> (front : List a) -> ListPair a
+
+
+implementation Queue ListPair where
+  empty = LP [] [] 
+  push x (LP back front) = LP (x :: back) front
+  pop (LP []   []) = Nothing
+  pop (LP back []) = pop $ LP [] (reverse back)
+  pop (LP back (x :: front)) = Just (x, (LP back front))
+
 
 
