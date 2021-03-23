@@ -37,8 +37,8 @@ bothIO (x, y) = do
 -- Problem 3
 implementation Num CoNat where
   (+) Zero     b = b
-  (+) (Succ a) b = a + (Succ b)
-  (*) (Succ a) (Succ b) = (a + b) + (Succ (a * b)) 
+  (+) (Succ a) b = Succ (a + b)
+  (*) (Succ a) (Succ b) = Succ ((a + b) +  (a * b)) 
   (*) _        _ = Zero
   fromInteger i = case (the Nat) (fromInteger i) of
                        Z     => Zero
