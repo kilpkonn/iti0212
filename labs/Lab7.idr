@@ -36,4 +36,4 @@ minus (Succ n) (Succ x) = minus n x
 times : (a : CoNat) -> (b : CoNat) -> CoNat
 times Zero     _         = Zero
 times _        Zero      = Zero
-times (Succ a) (Succ b)  = (a `plus` b) `plus` (Succ (a `times` b))
+times (Succ a) (Succ b)  = Succ ((a `plus` b) `plus` (a `times` b))
