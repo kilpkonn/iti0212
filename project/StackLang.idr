@@ -23,7 +23,7 @@ public export
 data Entry : Type -> Type where
   Elem : a -> Entry a
   Func : (a -> a -> a) -> Entry a
-  Op   : ((state : List (Nat, (Entry a))) -> (Entry a) ->
+  Op   : ((state : List (Nat, (Entry a))) -> Stack (Entry a) ->
          IO (((List (Pair Nat (Entry a))), Stack (Entry a)))) -> Entry a
   Err  : Entry a
   Nil  : Entry a
@@ -65,13 +65,13 @@ runFunc f ((Elem x) :: (Elem y) :: rest) = (Elem (f x y)) :: rest
 runFunc f _ = Err :: Empty
 
 
-runOp : --(state : (List (Pair Nat (Entry a)))) -> 
-        (f : (Entry a) -> IO (List (Nat, (Entry a)), Stack (Entry a))) -> 
-        Stack (Entry a) -> IO (List (Nat, (Entry a)), Stack (Entry a))
-runOp f (top :: rest) = do
-                          (state, newStack) <- f top
-                          pure $ (state, merge (reverse newStack) rest)
-runOp f Empty = pure !(f Nil)
+--runOp : --(state : (List (Pair Nat (Entry a)))) -> 
+--        (f : (Entry a) -> IO (List (Nat, (Entry a)), Stack (Entry a))) -> 
+--        Stack (Entry a) -> IO (List (Nat, (Entry a)), Stack (Entry a))
+--runOp f (top :: rest) = do
+--                          (state, newStack) <- f top
+--                          pure $ (state, merge (reverse newStack) rest)
+--runOp f Empty = pure !(f Nil)
 
 
 -- Forward declaration
@@ -83,9 +83,10 @@ runRight : (state : List (Nat, (Entry a))) ->
 runRight state ioStackLeft ioStackRight = do
   stackLeft <- ioStackLeft
   stackRight <- ioStackRight
-  -- putStrLn "To right"
-  -- putStrLn $ "left: " ++ (show stackLeft)
-  -- putStrLn $ "right: " ++ (show stackRight)
+  putStrLn "To right"
+  putStrLn $ "State: " ++ (show state)
+  putStrLn $ "left: " ++ (show stackLeft)
+  putStrLn $ "right: " ++ (show stackRight)
   case stackRight of
        Empty => case stackLeft of
                      Empty  => pure Nothing
@@ -95,7 +96,7 @@ runRight state ioStackLeft ioStackRight = do
        (Elem e) :: rest => runRight state (pure ((Elem e) :: stackLeft)) (pure rest)
        (Func f) :: rest => runLeft state (pure (runFunc f stackLeft)) (pure rest)
        (Op   o) :: rest => do 
-                             (s, left) <- runOp (o state) stackLeft
+                             (s, left) <- o state stackLeft
                              runLeft s (pure left) (pure rest)
        Nil      :: rest => runRight state ioStackLeft (pure rest)
        Err      :: rest => pure Nothing
@@ -103,15 +104,16 @@ runRight state ioStackLeft ioStackRight = do
 runLeft state ioStackLeft ioStackRight = do
   stackLeft <- ioStackLeft
   stackRight <- ioStackRight
-  -- putStrLn "To left"
-  -- putStrLn $ "left: " ++ (show stackLeft)
-  -- putStrLn $ "right: " ++ (show stackRight)
+  putStrLn "To left"
+  putStrLn $ "State: " ++ (show state)
+  putStrLn $ "left: " ++ (show stackLeft)
+  putStrLn $ "right: " ++ (show stackRight)
   case stackLeft of
        Empty => runRight state (pure Empty) ioStackRight
        (Elem e) :: rest => runLeft state (pure rest) (pure ((Elem e) :: stackRight))
        (Func f) :: rest => runLeft state (pure (runFunc f rest)) ioStackRight
        (Op   o) :: rest => do
-                             (s, left) <- runOp (o state) stackLeft
+                             (s, left) <- o state stackLeft
                              runLeft s (pure left) ioStackRight
        Nil     :: rest  => runLeft state (pure rest) ioStackRight
        Err     :: rest  => pure Nothing

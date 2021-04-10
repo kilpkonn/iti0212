@@ -20,30 +20,40 @@ interface EntryMappable a where
 mapToMaybeEntry : String -> IO (Maybe (Entry Nat))
 
 
-runReadInput : (s : List (Nat, Entry Nat)) -> (Entry Nat) ->
+runReadInput : (s : List (Nat, Entry Nat)) -> Stack (Entry Nat) ->
             IO (List (Nat, Entry Nat), Stack (Entry Nat))
-runReadInput s top = do
+runReadInput s stack = do
   putStr "Please Enter a Symbol: "
   input <- getLine
   maybeEntry <- mapToMaybeEntry input
   case maybeEntry of
        Nothing => pure (s, Err :: Empty)
-       Just c  => pure (s, c :: (top :: Empty))
+       Just c  => pure (s, c :: stack)
 
 
-runPop : (s : List (Nat, Entry Nat)) -> (Entry Nat) ->
+runPop : (s : List (Nat, Entry Nat)) -> Stack (Entry Nat) ->
             IO (List (Nat, Entry Nat), Stack (Entry Nat))
-runPop s (Elem e) = putStrLn ("Evaluation prints: " ++ (show e)) >>= (\_ => pure (s, Empty))
-runPop s Nil      = putStrLn "Unable to print: Stack is empty" >>= (\_ => pure (s, Empty))
-runPop s _        = putStrLn "No Result!" >>= (\_ => pure (s, Empty))  -- Or should I print?
+runPop s ((Elem e) :: rest) = do
+  putStrLn ("Evaluation prints: " ++ (show e))
+  pure (s, rest)
+runPop s Empty = do
+  putStrLn "Unable to print: Stack is empty"
+  pure (s, Empty)
+runPop s (x :: rest) = putStrLn "No Result!" >>= (\_ => pure (s, rest))  -- Or should I print?
 
 
-storeElem : (s : List (Nat, Entry Nat)) -> (Entry Nat) ->
-            IO (List (Nat, Entry Nat), Stack (Entry a)) 
-storeElem s (Elem x) = pure (s, ?storeElem_rhs_1)
-storeElem s (Func f) = pure (s, ?storeElem_rhs_2)
-storeElem s (Op f)   = pure (s, ?storeElem_rhs_3)
-storeElem s _        = pure (s, Err :: Empty)
+runLoad : (s : List (Nat, Entry Nat)) -> Stack (Entry Nat) ->
+            IO (List (Nat, Entry Nat), Stack (Entry Nat))
+runLoad ((i, el) :: xs) ((Elem top) :: stack) = 
+  if i == top then pure ((i, el) :: xs, el :: stack)
+              else pure ((i, el) :: xs, snd !(runLoad xs ((Elem top) :: stack)))
+runLoad s stack = pure (s, Err :: stack)
+
+
+runStore : (s : List (Nat, Entry Nat)) -> Stack (Entry Nat) ->
+            IO (List (Nat, Entry Nat), Stack (Entry Nat)) 
+runStore s ((Elem x) :: (Elem y) :: rest) = pure ((x, Elem y) :: s, rest) -- Allow others?
+runStore s stack = pure (s, Err :: stack)
 
 
 implementation EntryMappable String where
@@ -51,6 +61,8 @@ mapToMaybeEntry x = if x == "+" then pure $ Just $ Func (+)
               else if x == "*" then pure $ Just $ Func (*)
               else if x == "r" then pure $ Just $ Op runReadInput
               else if x == "p" then pure $ Just $ Op runPop
+              else if x == "b" then pure $ Just $ Op runStore
+              else if x == "d" then pure $ Just $ Op runLoad
               else case parsePositive x of
                         Nothing => pure Nothing -- TODO: This should throw
                         Just n  => pure $ Just $ Elem n
