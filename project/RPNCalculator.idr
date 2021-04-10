@@ -5,6 +5,7 @@ import Data.List
 import System
 import System.File
 
+
 import StackLang
 
 
@@ -19,20 +20,30 @@ interface EntryMappable a where
 mapToMaybeEntry : String -> IO (Maybe (Entry Nat))
 
 
-runReadInput : (Entry Nat) ->  IO (Stack (Entry Nat))
-runReadInput top = do
+runReadInput : (s : List (Nat, Entry Nat)) -> (Entry Nat) ->
+            IO (List (Nat, Entry Nat), Stack (Entry Nat))
+runReadInput s top = do
   putStr "Please Enter a Symbol: "
   input <- getLine
   maybeEntry <- mapToMaybeEntry input
   case maybeEntry of
-       Nothing => pure $ Err :: Empty
-       Just c  => pure $ c :: (top :: Empty)
+       Nothing => pure (s, Err :: Empty)
+       Just c  => pure (s, c :: (top :: Empty))
 
 
-runPop : (Entry Nat) -> IO (Stack (Entry Nat))
-runPop (Elem e) = putStrLn ("Evaluation prints: " ++ (show e)) >>= (\_ => pure Empty)
-runPop Nil      = putStrLn "Unable to print: Stack is empty" >>= (\_ => pure Empty)
-runPop _        = putStrLn "No Result!" >>= (\_ => pure Empty)  -- Or should I print?
+runPop : (s : List (Nat, Entry Nat)) -> (Entry Nat) ->
+            IO (List (Nat, Entry Nat), Stack (Entry Nat))
+runPop s (Elem e) = putStrLn ("Evaluation prints: " ++ (show e)) >>= (\_ => pure (s, Empty))
+runPop s Nil      = putStrLn "Unable to print: Stack is empty" >>= (\_ => pure (s, Empty))
+runPop s _        = putStrLn "No Result!" >>= (\_ => pure (s, Empty))  -- Or should I print?
+
+
+storeElem : (s : List (Nat, Entry Nat)) -> (Entry Nat) ->
+            IO (List (Nat, Entry Nat), Stack (Entry a)) 
+storeElem s (Elem x) = pure (s, ?storeElem_rhs_1)
+storeElem s (Func f) = pure (s, ?storeElem_rhs_2)
+storeElem s (Op f)   = pure (s, ?storeElem_rhs_3)
+storeElem s _        = pure (s, Err :: Empty)
 
 
 implementation EntryMappable String where
@@ -60,7 +71,7 @@ parseInput input = do
     cmds <- filterNothing $ map mapToMaybeEntry (words input)
     putStrLn $ show $ words input
     putStrLn $ show cmds
-    pure $ stackFromList cmds
+    pure $ cast cmds
 
 
 public export
@@ -75,15 +86,13 @@ eval input = do
 
 main :  IO ()
 main = case !getArgs of
-       _ :: x :: xs => do
-            file <- readFile x
-            case file of
+       _ :: x :: xs => 
+            case !(readFile x) of
                 Left err  => putStr "Error reading file!"
-                Right content  => do
-                  res <- eval content 
-                  case res of
-                       Nothing => putStr $ "No Result!"
-                       Just n  => putStr (show n) >>= (\_ => pure())
+                Right content  => 
+                  case !(eval content) of
+                       Nothing => putStr "No Result!"
+                       Just n  => putStr (show n)
        _ => putStr "Please specify file name!"
 
 
