@@ -9,6 +9,9 @@ import Data.Vect
 import Data.List.Elem
 
 
+%default total
+
+
 -- Problem 1
 implementation Semigroup (a -> a) where
   (<+>) f g = g . f
