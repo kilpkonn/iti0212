@@ -16,6 +16,7 @@ import Data.Nat  -- if using Idris 2 (for LTE)
 
 
 -- evenness as a boolean-valued function:
+public export
 is_even  :  Nat -> Bool
 is_even Z  =  True
 is_even (S Z)  =  False
@@ -112,6 +113,7 @@ six_even  =  SS_even four_even
 -- The constructor SS_even says that the double-successor
 -- of an even number is even.
 -- We can prove the converse as well:
+public export
 pp_even  :  Even (S (S n)) -> Even n
 pp_even (SS_even n_even)  =  n_even
 
