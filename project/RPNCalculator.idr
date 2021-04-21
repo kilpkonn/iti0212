@@ -10,11 +10,12 @@ import StackLang
 
 
 implementation Show (Entry Nat) where
-  show (Elem x) = show x
-  show (Func f) = "fn"
-  show (Op f)   = "operation"
-  show Err      = "err"
-  show Nil      = "nil"
+  show (Elem x)     = show x
+  show (Func f)     = "fn"
+  show (Op f)       = "operation"
+  show (Jump dir n) = "j(" ++ (show n) ++ ")"
+  show Err          = "err"
+  show Nil          = "nil"
 
 interface EntryMappable a where
 mapToMaybeEntry : String -> IO (Maybe (Entry Nat))
@@ -56,6 +57,31 @@ runStore s ((Elem x) :: (Elem y) :: rest) = pure ((x, Elem y) :: s, rest) -- All
 runStore s stack = pure (s, Err :: stack)
 
 
+runIf : Bool -> (s : List (Nat, Entry Nat)) -> Stack (Entry Nat) ->
+         IO (List (Nat, Entry Nat), Stack (Entry Nat))
+runIf x s ((Elem a) :: ((Elem b) :: (top :: stack))) = 
+  case x of
+    True => if a < b then pure (s, top :: stack) else pure (s, stack)
+    False => if a > b then pure (s, top :: stack) else pure (s, stack)
+runIf _ s stack = pure (s, Err :: stack)
+
+
+runLoop : (s : List (Nat, Entry Nat)) -> Stack (Entry Nat) ->
+           IO (List (Nat, Entry Nat), Stack (Entry Nat))
+runLoop s ((Elem n) :: ((Elem m) :: stack)) = pure (s, duplicate n m stack)
+runLoop s stack = pure (s, Err :: stack)
+
+
+parseMove : String -> Maybe (Entry Nat)
+parseMove input = 
+  case unpack input of
+       [] => Nothing
+       (x :: xs) => (parsePositive (pack xs)) >>= (\n =>
+                    if x == '>' then Just $ Jump True n
+                    else if x == '<' then Just $ Jump False n
+                    else Nothing)
+
+
 implementation EntryMappable String where
 mapToMaybeEntry x = if x == "+" then pure $ Just $ Func (+)
               else if x == "*" then pure $ Just $ Func (*)
@@ -63,8 +89,15 @@ mapToMaybeEntry x = if x == "+" then pure $ Just $ Func (+)
               else if x == "p" then pure $ Just $ Op runPop
               else if x == "b" then pure $ Just $ Op runStore
               else if x == "d" then pure $ Just $ Op runLoad
+              else if x == "<?" then pure $ Just $ Op $ runIf True
+              else if x == ">?" then pure $ Just $ Op $ runIf False
+              else if x == ":" then pure $ Just $ Op runLoop
               else case parsePositive x of
-                        Nothing => pure Nothing -- TODO: This should throw
+                        Nothing => case parseMove x of
+                          Just move => pure $ Just move
+                          Nothing => do
+                            putStrLn $ "Error parsing input: " ++ x
+                            pure Nothing -- TODO: This should throw?
                         Just n  => pure $ Just $ Elem n
 
 

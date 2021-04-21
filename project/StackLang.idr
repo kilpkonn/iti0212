@@ -25,6 +25,7 @@ data Entry : Type -> Type where
   Func : (a -> a -> a) -> Entry a
   Op   : ((state : List (Nat, (Entry a))) -> Stack (Entry a) ->
          IO (((List (Pair Nat (Entry a))), Stack (Entry a)))) -> Entry a
+  Jump : (dir : Bool) -> (n : Nat) -> Entry a
   Err  : Entry a
   Nil  : Entry a
 
@@ -33,6 +34,7 @@ implementation Show (Entry a) where
   show (Elem x) = "el"
   show (Func f) = "fn"
   show (Op   o) = "op"
+  show (Jump dir n) = "j(" ++ (show n) ++ ")"
   show Err      = "err"
   show Nil      = "nil"
 
@@ -60,18 +62,42 @@ merge Empty     ys = ys
 merge (x :: xs) ys = merge xs (x :: ys)
 
 
+duplicateAcc : (n : Nat) -> (m : Nat) -> (acc : Stack (Entry Nat)) -> 
+            (stack : Stack (Entry Nat)) -> Stack (Entry Nat) 
+duplicateAcc 0 0 acc stack = merge acc stack 
+duplicateAcc (S n) 0 acc stack = duplicateAcc n 0 acc (merge acc stack)
+duplicateAcc n (S m) acc (top :: stack) = duplicateAcc n m (top :: acc) stack
+duplicateAcc n (S m) acc Empty = Err :: Empty 
+
+
+public export
+duplicate : (n : Nat) -> (m : Nat) -> (stack : Stack (Entry Nat)) -> Stack (Entry Nat)
+duplicate n m stack = duplicateAcc n m Empty stack
+
+
 runFunc : (a -> a -> a) -> Stack (Entry a) -> Stack (Entry a)
 runFunc f ((Elem x) :: (Elem y) :: rest) = (Elem (f x y)) :: rest
 runFunc f _ = Err :: Empty
 
 
---runOp : --(state : (List (Pair Nat (Entry a)))) -> 
---        (f : (Entry a) -> IO (List (Nat, (Entry a)), Stack (Entry a))) -> 
---        Stack (Entry a) -> IO (List (Nat, (Entry a)), Stack (Entry a))
---runOp f (top :: rest) = do
---                          (state, newStack) <- f top
---                          pure $ (state, merge (reverse newStack) rest)
---runOp f Empty = pure !(f Nil)
+moveLeft : (n : Nat) -> (left : Stack (Entry a)) -> (right : Stack (Entry a)) ->
+            (Stack (Entry a), Stack (Entry a))
+moveLeft 0 left right = (left, right)
+moveLeft (S n) (top :: stack) right = moveLeft n stack (top :: right)
+moveLeft (S n) Empty right = (Err :: Empty, right)
+
+
+moveRight : (n : Nat) -> (left : Stack (Entry a)) -> (right : Stack (Entry a)) ->
+            (Stack (Entry a), Stack (Entry a))
+moveRight 0 left right = (left, right)
+moveRight (S n) left (top :: stack) = (top :: left, stack)
+moveRight (S n) left Empty = (Err :: left, Empty)
+
+
+move : (dir : Bool) -> (n : Nat) -> (left : Stack (Entry a)) -> (right : Stack (Entry a)) ->
+            (Stack (Entry a), Stack (Entry a))
+move True n left right = moveRight n left right
+move False n left right = moveLeft n left right
 
 
 -- Forward declaration
@@ -83,10 +109,10 @@ runRight : (state : List (Nat, (Entry a))) ->
 runRight state ioStackLeft ioStackRight = do
   stackLeft <- ioStackLeft
   stackRight <- ioStackRight
-  putStrLn "To right"
-  putStrLn $ "State: " ++ (show state)
-  putStrLn $ "left: " ++ (show stackLeft)
-  putStrLn $ "right: " ++ (show stackRight)
+  --putStrLn "To right"
+  --putStrLn $ "State: " ++ (show state)
+  --putStrLn $ "left: " ++ (show stackLeft)
+  --putStrLn $ "right: " ++ (show stackRight)
   case stackRight of
        Empty => case stackLeft of
                      Empty  => pure Nothing
@@ -98,16 +124,20 @@ runRight state ioStackLeft ioStackRight = do
        (Op   o) :: rest => do 
                              (s, left) <- o state stackLeft
                              runLeft s (pure left) (pure rest)
+       (Jump dir n) :: rest => let
+                                 (left, right) = move dir n stackLeft stackRight
+                               in
+                                 runLeft state (pure left) (pure right)
        Nil      :: rest => runRight state ioStackLeft (pure rest)
        Err      :: rest => pure Nothing
 
 runLeft state ioStackLeft ioStackRight = do
   stackLeft <- ioStackLeft
   stackRight <- ioStackRight
-  putStrLn "To left"
-  putStrLn $ "State: " ++ (show state)
-  putStrLn $ "left: " ++ (show stackLeft)
-  putStrLn $ "right: " ++ (show stackRight)
+  --putStrLn "To left"
+  --putStrLn $ "State: " ++ (show state)
+  --putStrLn $ "left: " ++ (show stackLeft)
+  --putStrLn $ "right: " ++ (show stackRight)
   case stackLeft of
        Empty => runRight state (pure Empty) ioStackRight
        (Elem e) :: rest => runLeft state (pure rest) (pure ((Elem e) :: stackRight))
@@ -115,6 +145,10 @@ runLeft state ioStackLeft ioStackRight = do
        (Op   o) :: rest => do
                              (s, left) <- o state stackLeft
                              runLeft s (pure left) ioStackRight
+       (Jump dir n) :: rest => let
+                                 (left, right) = move dir n stackLeft stackRight
+                               in
+                                 runLeft state (pure left) (pure right)
        Nil     :: rest  => runLeft state (pure rest) ioStackRight
        Err     :: rest  => pure Nothing
 
