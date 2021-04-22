@@ -39,6 +39,7 @@ implementation Show (Entry a) where
   show Nil      = "nil"
 
 
+public export
 implementation Show a => Show (Stack a) where
   show Empty        = "end"
   show (top :: stack) = (show top) ++ " :: " ++ (show stack)
@@ -70,6 +71,7 @@ duplicateAcc n (S m) acc (top :: stack) = duplicateAcc n m (top :: acc) stack
 duplicateAcc n (S m) acc Empty = Err :: Empty 
 
 
+-- Duplicate m elements n times
 public export
 duplicate : (n : Nat) -> (m : Nat) -> (stack : Stack (Entry Nat)) -> Stack (Entry Nat)
 duplicate n m stack = duplicateAcc n m Empty stack
@@ -83,14 +85,14 @@ runFunc f _ = Err :: Empty
 moveLeft : (n : Nat) -> (left : Stack (Entry a)) -> (right : Stack (Entry a)) ->
             (Stack (Entry a), Stack (Entry a))
 moveLeft 0 left right = (left, right)
-moveLeft (S n) (top :: stack) right = moveLeft n stack (top :: right)
+moveLeft (S n) (top :: left) right = moveLeft n left (top :: right)
 moveLeft (S n) Empty right = (Err :: Empty, right)
 
 
 moveRight : (n : Nat) -> (left : Stack (Entry a)) -> (right : Stack (Entry a)) ->
             (Stack (Entry a), Stack (Entry a))
 moveRight 0 left right = (left, right)
-moveRight (S n) left (top :: stack) = (top :: left, stack)
+moveRight (S n) left (top :: right) = moveRight n  (top :: left) right
 moveRight (S n) left Empty = (Err :: left, Empty)
 
 
@@ -109,7 +111,7 @@ runRight : (state : List (Nat, (Entry a))) ->
 runRight state ioStackLeft ioStackRight = do
   stackLeft <- ioStackLeft
   stackRight <- ioStackRight
-  --putStrLn "To right"
+  --putStrLn "\nTo right"
   --putStrLn $ "State: " ++ (show state)
   --putStrLn $ "left: " ++ (show stackLeft)
   --putStrLn $ "right: " ++ (show stackRight)
@@ -125,7 +127,7 @@ runRight state ioStackLeft ioStackRight = do
                              (s, left) <- o state stackLeft
                              runLeft s (pure left) (pure rest)
        (Jump dir n) :: rest => let
-                                 (left, right) = move dir n stackLeft stackRight
+                                 (left, right) = move dir n stackLeft rest
                                in
                                  runLeft state (pure left) (pure right)
        Nil      :: rest => runRight state ioStackLeft (pure rest)
@@ -134,7 +136,7 @@ runRight state ioStackLeft ioStackRight = do
 runLeft state ioStackLeft ioStackRight = do
   stackLeft <- ioStackLeft
   stackRight <- ioStackRight
-  --putStrLn "To left"
+  --putStrLn "\nTo left"
   --putStrLn $ "State: " ++ (show state)
   --putStrLn $ "left: " ++ (show stackLeft)
   --putStrLn $ "right: " ++ (show stackRight)
@@ -143,10 +145,10 @@ runLeft state ioStackLeft ioStackRight = do
        (Elem e) :: rest => runLeft state (pure rest) (pure ((Elem e) :: stackRight))
        (Func f) :: rest => runLeft state (pure (runFunc f rest)) ioStackRight
        (Op   o) :: rest => do
-                             (s, left) <- o state stackLeft
+                             (s, left) <- o state rest
                              runLeft s (pure left) ioStackRight
        (Jump dir n) :: rest => let
-                                 (left, right) = move dir n stackLeft stackRight
+                                 (left, right) = move dir n rest stackRight
                                in
                                  runLeft state (pure left) (pure right)
        Nil     :: rest  => runLeft state (pure rest) ioStackRight
