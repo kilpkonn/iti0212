@@ -3,6 +3,14 @@ Tavo Annus
 taannu
 
 
+# Building
+Make sure to have **idris2** installed.  
+Open `StackLang.idr` in REPL.  
+```
+:c interpret main
+```
+
+
 ## Part 4
 _I chose to add symbols to complete Turning complete language_  
  
@@ -73,6 +81,21 @@ echo "1 2 3 4 >? p" > prog && ./interpret prog
 # 1 <- 1 remains in stack under 2.
 ```
 
+### = Operator
+Checks equality of top 2 elements in stack.
+If elements are not equal the 3rd topmost element is thrown away.
+Otherwise only top 2 elements are thrown away after comaprison.
+
+#### Example
+```bash
+echo "1 2 3 3 =" > prog && ./interpret prog
+# Returns 1 as 2 is thrown away
+
+echo "1 2 3 4 =" > prog && ./interpret prog
+# Keeps infinetly looping, as no operations are possible and
+# multiple elements exsist in stack.
+```
+
 ### : operator
 Duplicates n elements (specified by second topmost element) 
 m times (specified by topmost element)
@@ -91,3 +114,10 @@ echo "0 1 2 3 4 >5 p <1 2 3 :" > prog && ./interpret prog
 Note that `<1` is needed to jump left to p as otherwise it would
 start printing previous `p` operators.
 
+#### Some random more complex example
+```bash
+echo "r 1 b >16 1 d p <3 >3 >3 1 d 2 * 1 b <3 9 >2 r :" > prog && ./interpret prog
+```
+Will ask input twice and multiply number inserted first with `2` amount of times
+entered in second input + 1.  
+Loop is used to rising to power.
