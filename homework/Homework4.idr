@@ -74,6 +74,42 @@ dm2 (f, g) (Left x) = f x
 dm2 (f, g) (Right x) = g x
 
 
+-- Problem 4
+Some  :  (a : Type) -> (p : a -> Type) -> Type
+Some  =  DPair
+
+
+%hint
+plus_succ_right_helper : {n : Nat} -> n + n = m -> n + (S n) = S m
+plus_succ_right_helper {n = n} Refl = 
+  rewrite plusSuccRightSucc n n in Refl
+
+
+evens_are_doubles : Even n -> Some Nat $ \ m => m + m = n
+evens_are_doubles Z_even = (Z ** Refl)
+evens_are_doubles (SS_even even) = 
+  let
+    (x ** proof) = evens_are_doubles even
+  in
+    (S x **  cong S (plus_succ_right_helper proof))
+
+
+-- Problem 5
+half : (n : Nat) -> {auto even : Even n} -> Nat
+half Z = Z
+half (S (S n)) {even = SS_even even} = S $ half n
+
+
+-- Problem 6
+dec_not : {p : a -> Type} -> Dec (p x) -> Dec (Not $ p x)
+dec_not (Yes prf) = No (\f => f prf)
+dec_not (No contra) = Yes contra
+
+
+dec_and : {p, q : a -> Type} -> Dec (p x) -> Dec (q x) -> Dec (p x `And` q x)
+dec_and (Yes prf_a) (Yes prf_b) = Yes (prf_a, prf_b)
+dec_and (Yes prf_a) (No contra_b) = No (\y => contra_b (snd y))
+dec_and (No contra) dec_b = No (\y => contra (fst y))
 
 
 
