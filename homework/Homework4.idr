@@ -7,7 +7,6 @@ module Homework4
 
 import Data.Nat
 
-import Syntax.PreorderReasoning
 
 %default total
 
