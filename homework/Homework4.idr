@@ -17,16 +17,29 @@ data  Even : (n : Nat) -> Type  where
 	SS_even :  Even n -> Even (S (S n))
 
 
-%hint
-ss_even_helper : {n : Nat} -> Even (S (S (n + n))) -> Even (S n + S n)
-ss_even_helper {n = n} proof = rewrite sym $ plusSuccRightSucc n n in proof
+public export
+transport  :  {0 a : Type} -> (0 fiber : a -> Type) ->
+	{0 x , y : a} -> (path : x = y) ->
+	fiber x -> fiber y
+transport fiber Refl  =  id
+
+
+-- %hint
+-- ss_even_helper : {n : Nat} -> Even (S (S (n + n))) -> Even (S n + S n)
+-- ss_even_helper {n = n} proof = rewrite sym $ plusSuccRightSucc n n in proof
 
 
 -- Problem 1
 %hint
 double_even : (n : Nat) -> Even (n + n)
 double_even Z = Z_even
-double_even (S n) = ss_even_helper (SS_even (double_even n)) 
+double_even (S n) = transport Even path lemma
+  where
+    lemma : Even $ S (S (n + n))
+    lemma = SS_even $ double_even n
+    path : S (S (n + n)) = (S n + S n)
+    path = plusSuccRightSucc (S n) n
+  -- ss_even_helper (SS_even (double_even n)) 
 
 {-
 %hint
@@ -43,7 +56,11 @@ even_sum_helper (SS_even x) m_even = SS_even (even_sum_helper x m_even)
 
 %hint
 even_assoc_helper : {n, m : Nat} -> Even ((n + n) + m * n) -> Even (n + (n + m * n))
-even_assoc_helper {n = n} {m = m} proof = rewrite plusAssociative n n (m * n) in proof
+even_assoc_helper {n = n} {m = m} proof = transport Even path proof
+  where
+    path : ((n + n) + m * n) = (n + (n + m * n))
+    path = sym $ plusAssociative n n (m * n)
+  -- rewrite plusAssociative n n (m * n) in proof
 
 
 -- Problem 2
@@ -80,8 +97,8 @@ Some  =  DPair
 
 %hint
 plus_succ_right_helper : {n : Nat} -> n + n = m -> n + (S n) = S m
-plus_succ_right_helper {n = n} Refl = 
-  rewrite plusSuccRightSucc n n in Refl
+plus_succ_right_helper {n = n} Refl = sym (plusSuccRightSucc n n)
+  -- rewrite plusSuccRightSucc n n in Refl
 
 
 evens_are_doubles : Even n -> Some Nat $ \ m => m + m = n
